@@ -1,7 +1,6 @@
-from kivy.config import Config
-Config.set("graphics", "fullscreen", "auto")
+# from kivy.config import Config
+# Config.set("graphics", "fullscreen", "auto")
 
-from TotemUV.Application import InitialScreen
+from TotemUV.Application import TotemUVApp
 
-InitialScreen().run()
-
+TotemUVApp().run()
