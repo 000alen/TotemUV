@@ -2,8 +2,8 @@ import cv2
 import numpy
 
 
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_eye.xml")
+face_cascade = cv2.CascadeClassifier("haarcascades/haarcascade_frontalface_default.xml")
+eye_cascade = cv2.CascadeClassifier("haarcascades/haarcascade_eye.xml")
 
 image = cv2.imread("samples/6 (3, 4).jpg")
 image = cv2.resize(image, (480, 640))
