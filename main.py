@@ -123,22 +123,15 @@ faces_dilate = tuple(
     for i in faces_opening
 )
 
-
 outputs = []
 for i in range(len(faces_dilate)):
     dilate = cv2.cvtColor(faces_dilate[i], cv2.COLOR_GRAY2BGR)
     threshold_no_contour = cv2.cvtColor(faces_threshold_no_contour[i], cv2.COLOR_GRAY2BGR)
-
     mask_red = numpy.where(dilate != (0, 0, 0), (0, 0, 255), (0, 0, 0)).astype("uint8")
     mask_green = numpy.where(threshold_no_contour != (0, 0, 0), (0, 255, 0), (0, 0, 0)).astype("uint8")
-    mask = numpy.where(mask_red != (0, 0, 0), mask_red, mask_red).astype("uint8")
+    mask = numpy.where(mask_red != (0, 0, 0), mask_red, mask_green).astype("uint8")
     output = numpy.where(mask != (0, 0, 0), mask, image).astype("uint8")
     outputs.append(output)
-
-# outputs = tuple(
-#     numpy.where(cv2.cvtColor(i, cv2.COLOR_GRAY2BGR) != 0, (0, 0, 255), image).astype("uint8")
-#     for i in faces_dilate
-# )
 
 # -- Plotting --
 plot_face_features = image.copy()
@@ -161,6 +154,7 @@ plots = (
 )
 
 for i, (title, img) in enumerate(plots):
+    cv2.imwrite("output/" + title + ".jpg", img)
     pyplot.subplot(3, 3, i + 1)
     pyplot.imshow(img)
     pyplot.title(title)
