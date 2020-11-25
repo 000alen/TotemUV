@@ -1,4 +1,6 @@
 kivy
-opencv-python~=4.4.0.46
-numpy~=1.18.1
-matplotlib~=3.2.1
+opencv-python
+numpy
+matplotlib
+dlib
+imutils

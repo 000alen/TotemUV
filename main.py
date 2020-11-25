@@ -1,128 +1,131 @@
 import cv2
 import numpy
+import dlib
 
 from fractions import Fraction
 from matplotlib import pyplot
+from imutils import face_utils
+from typing import Tuple
+
+Rect = Tuple[int, int, int, int]
+
+# Indica el rango de indices correspondientes a los puntos de los elementos faciales definidos en:
+# https://ibug.doc.ic.ac.uk/resources/facial-point-annotations/
+dlib_facial_landmarks = (
+    ("mouth", 48, 68),
+    ("right_eyebrow", 17, 22),
+    ("left_eyebrow", 22, 27),
+    ("right_eye", 36, 42),
+    ("left_eye", 42, 48),
+    ("nose", 27, 35),
+)
 
 
-def face_segment(_image, _face_rect):
+def face_segment(_image: numpy.ndarray, _face_rect: Rect) -> numpy.ndarray:
+    """Calcula la segmentacion de la cara dada su ubicacion."""
     background_model = numpy.zeros((1, 65), numpy.float64)
     foreground_model = numpy.zeros((1, 65), numpy.float64)
-    mask = numpy.zeros(_image.shape[:2], numpy.uint8)
-    cv2.grabCut(_image, mask, _face_rect, background_model, foreground_model, 5, cv2.GC_INIT_WITH_RECT)
-    mask2 = numpy.where((mask == 2) | (mask == 0), 0, 1).astype("uint8")
+    _mask = numpy.zeros(_image.shape[:2], numpy.uint8)
+    cv2.grabCut(_image, _mask, _face_rect, background_model, foreground_model, 5, cv2.GC_INIT_WITH_RECT)
+    mask2 = numpy.where((_mask == 2) | (_mask == 0), 0, 1).astype("uint8")
     return cv2.cvtColor(_image * mask2[:, :, numpy.newaxis], cv2.COLOR_BGR2GRAY)
 
 
-def face_threshold(_image, _face_features_rect):
+def face_threshold(_image: numpy.ndarray, _face_features_rect: Tuple[Rect]) -> numpy.ndarray:
+    """Calcula el umbral de la cara exceptuando en las zonas de los elementos faciales."""
     _image = cv2.adaptiveThreshold(_image, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 11, 2)
     for _x, _y, _w, _h in _face_features_rect:
         _image[_y:_y + _h, _x:_x + _w] = 0
     return _image
 
 
-def face_remove_contour(_image, _face_contour):
-    mask = numpy.ones(_image.shape[:2], dtype="uint8") * 255
-    cv2.drawContours(mask, [_face_contour], -1, 0, 10)
-    return cv2.bitwise_and(_image, _image, mask=mask)
+def face_remove_contour(_image: numpy.ndarray, _face_contour) -> numpy.ndarray:
+    """Elimina el contorno facial de la imagen."""
+    _mask = numpy.ones(_image.shape[:2], dtype="uint8") * 255
+    cv2.drawContours(_mask, [_face_contour], -1, 0, 10)
+    return cv2.bitwise_and(_image, _image, mask=_mask)
 
 
-# -- Initial image processing --
-image = cv2.imread("samples/6 (3, 4).jpg")
-ratio = Fraction(image.shape[0], image.shape[1])
-image = cv2.resize(image, (480, int(480 / ratio.denominator * ratio.numerator)))
-# ----
+# Procesamiento inicial
+image: numpy.ndarray = cv2.imread("samples/6 (3, 4).jpg")
+ratio: Fraction = Fraction(image.shape[0], image.shape[1])
+image: numpy.ndarray = cv2.resize(image, (480, int(480 / ratio.denominator * ratio.numerator)))
 
-# -- Eye tracking --
-eye_cascade = cv2.CascadeClassifier("haarcascades/haarcascade_eye.xml")
-eyes_rect, _, eyes_weight = eye_cascade.detectMultiScale3(image, 1.1, 7, outputRejectLevels=True)
-
-# Remove possible false-positives
-eyes_weight_threshold = numpy.mean(eyes_weight)
-eyes_rect = tuple(
-    j
-    for i, j in enumerate(eyes_rect)
-    if eyes_weight[i] >= eyes_weight_threshold
-)
-# ----
-
-# -- Mouth tracking --
-mouth_cascade = cv2.CascadeClassifier("haarcascades/haarcascade_mcs_mouth.xml")
-mouths_rect, _, mouths_weight = mouth_cascade.detectMultiScale3(image, 1.1, 7, outputRejectLevels=True)
-
-# Remove possible false-positives
-mouths_weight_threshold = numpy.mean(mouths_weight)
-mouths_rect = tuple(
-    j
-    for i, j in enumerate(mouths_rect)
-    if mouths_weight[i] >= mouths_weight_threshold
-)
-# ----
-
-# -- Nose tracking --
-nose_cascade = cv2.CascadeClassifier("haarcascades/haarcascade_mcs_nose.xml")
-noses_rect, _, noses_weight = nose_cascade.detectMultiScale3(image, 1.1, 7, outputRejectLevels=True)
-
-# Remove possible false-positives
-noses_weight_threshold = numpy.mean(noses_weight)
-noses_rect = tuple(
-    j
-    for i, j in enumerate(noses_rect)
-    if noses_weight[i] >= noses_weight_threshold
-)
-# ----
-
-# -- Face tracking --
+# Deteccion facial
+# Se utiliza un modelo pre-entrenado para la deteccion facial. Luego, se calcula la media de los puntajes de confianza
+# a modo de umbral para eliminar falsos positivos.
 face_cascade = cv2.CascadeClassifier("haarcascades/haarcascade_frontalface_default.xml")
 faces_rect, _, faces_weight = face_cascade.detectMultiScale3(image, 1.1, 7, outputRejectLevels=True)
-
-# Remove possible false-positives
 faces_weight_threshold = numpy.mean(faces_weight)
-faces_rect = tuple(
+faces_rect: Tuple[Rect] = tuple(
     j
     for i, j in enumerate(faces_rect)
     if faces_weight[i] >= faces_weight_threshold
 )
-# ----
 
-face_features_rect = eyes_rect + mouths_rect + noses_rect
+# Deteccion de elementos faciales
+# Se utiliza un modelo pre-entrenado para la deteccion de elementos faciales. Se calcula el sector donde se ubican
+# dicchos elementos.
+dlib_face_detector = dlib.get_frontal_face_detector()
+dlib_face_shape_predictor = dlib.shape_predictor("models/shape_predictor_68_face_landmarks.dat")
+dlib_faces_rectangle = dlib_face_detector(image, 1)
+faces_features_rect = tuple(
+    tuple(
+        cv2.boundingRect(
+            numpy.array([face_utils.shape_to_np(dlib_face_shape_predictor(image, face_rectangle))[j:k]])
+        )
+        for name, j, k in dlib_facial_landmarks
+    )
+    for i, face_rectangle in enumerate(dlib_faces_rectangle)
+)
 
-# -- Face processing --
-faces_segmentation = tuple(
+# Segmentacion facial
+# Se utiliza un algoritmo de segmentacion (GrabCut) para delimitar la cara.
+faces_segmentation: Tuple[numpy.ndarray, ...] = tuple(
     face_segment(image, i)
     for i in faces_rect
 )
 
-faces_threshold = tuple(
-    face_threshold(i, face_features_rect)
-    for i in faces_segmentation
+# Umbral facial
+# Se aplica un umbral inteligente para encontrar desviaciones en el color tipico de la piel.
+faces_threshold: Tuple[numpy.ndarray, ...] = tuple(
+    face_threshold(j, faces_features_rect[i])
+    for i, j in enumerate(faces_segmentation)
 )
 
+# Deteccion y eliminacion de contorno facial
+# Se aplica un algoritmo para la busqueda de contornos en la cara. Luego, se elimina el contorno de mayor tamaño, que
+# corresponde a la silueta de la cara.
 faces_contours = tuple(
     cv2.findContours(i, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)[0]
     for i in faces_threshold
 )
-
 faces_contours_max = tuple(
     max(faces_contours[i], key=lambda contour: cv2.arcLength(contour, True))
     for i in range(len(faces_contours))
 )
-
-faces_threshold_no_contour = tuple(
+faces_threshold_no_contour: Tuple[numpy.ndarray, ...] = tuple(
     face_remove_contour(j, faces_contours_max[i])
     for i, j in enumerate(faces_threshold)
 )
 
-faces_opening = tuple(
+# Transformacion morfologica de opening
+# Se aplica una transformacion morfologica de opening para eliminar el ruido experimental en el umbral de la piel
+# calculado anteriormente.
+faces_opening: Tuple[numpy.ndarray, ...] = tuple(
     cv2.morphologyEx(i, cv2.MORPH_OPEN, numpy.ones((5, 5), numpy.uint8))
     for i in faces_threshold_no_contour
 )
 
-faces_dilate = tuple(
+# Transformacion morfologica de dilate
+# Se aplica una transformacion morfologica de dilatacion para remarcar las detecciones en el umbral de la piel depurado.
+faces_dilate: Tuple[numpy.ndarray, ...] = tuple(
     cv2.dilate(i, numpy.ones((5, 5), numpy.uint8), iterations=2)
     for i in faces_opening
 )
 
+# Visualizacion de las detecciones
+# Se sobrepone el umbral sin depurar (color verde) y las detecciones realizadas (color rojo) sobre la imagen original.
 outputs = []
 for i in range(len(faces_dilate)):
     dilate = cv2.cvtColor(faces_dilate[i], cv2.COLOR_GRAY2BGR)
@@ -133,28 +136,27 @@ for i in range(len(faces_dilate)):
     output = numpy.where(mask != (0, 0, 0), mask, image).astype("uint8")
     outputs.append(output)
 
-# -- Plotting --
 plot_face_features = image.copy()
-for x, y, w, h in face_features_rect:
+for x, y, w, h in faces_features_rect[0]:
     cv2.rectangle(plot_face_features, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
 plot_face_contour = image.copy()
 cv2.drawContours(plot_face_contour, [faces_contours_max[0]], -1, 255, 10)
 
 plots = (
-    ("Input", image),
-    ("Output", outputs[0]),
-    ("Face features", plot_face_features),
-    ("Face segmentation", faces_segmentation[0]),
-    ("Face threshold", faces_threshold[0]),
-    ("Face contour", plot_face_contour),
-    ("Face threshold (no contour)", faces_threshold_no_contour[0]),
-    ("Face opening", faces_opening[0]),
-    ("Face dilate", faces_dilate[0])
+    ("Entrada", image),
+    ("Salida", outputs[0]),
+    ("Elementos", plot_face_features),
+    ("Segmentacion", faces_segmentation[0]),
+    ("Umbral", faces_threshold[0]),
+    ("Contorno", plot_face_contour),
+    ("Umbral (sin contorno)", faces_threshold_no_contour[0]),
+    ("Opening", faces_opening[0]),
+    ("Dilate", faces_dilate[0])
 )
 
 for i, (title, img) in enumerate(plots):
-    cv2.imwrite("output/" + title + ".jpg", img)
+    cv2.imwrite("outputs/" + title + ".jpg", img)
     pyplot.subplot(3, 3, i + 1)
     pyplot.imshow(img)
     pyplot.title(title)
