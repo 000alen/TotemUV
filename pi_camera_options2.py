@@ -25,71 +25,69 @@
 
 import os
 import time
+
 import picamera
 
 # Get valid Exposure and White Balance values
-valid_ex  = picamera.PiCamera.EXPOSURE_MODES
+valid_ex = picamera.PiCamera.EXPOSURE_MODES
 valid_awb = picamera.PiCamera.AWB_MODES
 
 # Valid Exposure and AWB values
 print("\nValid exposure values:\n[", end='')
 for value in valid_ex:
-    print("'"+value+"',", end='')
+    print("'" + value + "',", end='')
 print("]")
 
 print("\nValid AWB values:\n[", end='')
 for value in valid_awb:
-    print("'"+value+"',", end='')
+    print("'" + value + "',", end='')
 print("]")
 
 # Test list of Exposure and White Balance options. 9 photos.
-list_ex  = ['off','auto','backlight']
-list_awb = ['off','auto','sunlight']
+list_ex = ['off', 'auto', 'backlight']
+list_awb = ['off', 'auto', 'sunlight']
 
 # Specified Exposure and AWB values
-print("\nSpecified exposure values:",list_ex)
-print("Specified AWB values:",list_awb)
+print("\nSpecified exposure values:", list_ex)
+print("Specified AWB values:", list_awb)
 
 # Photo dimensions and rotation
-photo_width  = 640
+photo_width = 640
 photo_height = 480
 photo_rotate = 90
 
-photo_interval = 0.5 # Interval between photos (seconds)
-photo_counter  = 0   # Photo counter
+photo_interval = 0.5  # Interval between photos (seconds)
+photo_counter = 0  # Photo counter
 
 total_photos = len(list_ex) * len(list_awb)
 
 # Delete all previous image files
 try:
-  os.remove("photo_*.jpg")
+    os.remove("photo_*.jpg")
 except OSError:
-  pass
+    pass
 
 camera = picamera.PiCamera()
-camera.rotation=photo_rotate
-camera.resolution=(photo_width,photo_height)
+camera.rotation = photo_rotate
+camera.resolution = (photo_width, photo_height)
 camera.annotate_background = picamera.Color('black')
 camera.annotate_foreground = picamera.Color('white')
 
 # Lets start taking photos!
 try:
+    print("\nStarting photo sequence")
+    for ex in list_ex:
+        for awb in list_awb:
+            photo_counter = photo_counter + 1
+            filename = 'photo_' + ex + '_' + awb + '.jpg'
+            print(' [' + str(photo_counter) + ' of ' + str(total_photos) + '] ' + filename)
+            camera.awb_mode = awb
+            camera.exposure_mode = ex
+            camera.annotate_text = filename
+            camera.capture(filename)
+            time.sleep(photo_interval)
 
-  print("\nStarting photo sequence")
-
-  for ex in list_ex:
-    for awb in list_awb:
-      photo_counter = photo_counter + 1
-      filename = 'photo_' + ex + '_' + awb + '.jpg'
-      print(' [' + str(photo_counter) + ' of ' + str(total_photos) + '] ' + filename) 
-      camera.awb_mode=awb
-      camera.exposure_mode=ex
-      camera.annotate_text = filename
-      camera.capture(filename)
-      time.sleep(photo_interval)
-  
-  print("Finished photo sequence")
-  
+    print("Finished photo sequence")
 except KeyboardInterrupt:
-  # User quit
-  print("\nGoodbye!")
+    # User quit
+    print("\nGoodbye!")
