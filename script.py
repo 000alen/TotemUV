@@ -1,18 +1,20 @@
-from picamera import PiCamera
+from paramiko import SSHClient, AutoAddPolicy
+from scp import SCPClient
 
-camera = PiCamera()
-camera.iso = 800
-camera.analog_gain
-camera.digital_gain
-camera.awb_gains
-camera.awb_mode
-camera.brightness
-camera.contrast
-camera.exposure_compensation
-camera.exposure_mode
-camera.exposure_speed
-camera.meter_mode
-camera.saturation
-camera.sensor_mode
-camera.shutter_speed
-camera.sharpness
+
+def createSSHClient(server, port, user, password):
+    client = SSHClient()
+    client.load_system_host_keys()
+    client.set_missing_host_key_policy(AutoAddPolicy())
+    client.connect(server, port, user, password)
+    return client
+
+
+ssh = createSSHClient(input("host> "), int(input("port> ")), input("user> "), input("password> "))
+scp = SCPClient(ssh.get_transport())
+
+directory = input("directory> ")
+filename = input("filename> ")
+while filename:
+    scp.get(directory + filename, filename)
+    filename = input("filename> ")
