@@ -5,7 +5,7 @@ import picamera
 # Get valid Exposure and White Balance values
 valid_ex = picamera.PiCamera.EXPOSURE_MODES
 valid_awb = picamera.PiCamera.AWB_MODES
-valid_iso = range(100, 800, 100)
+valid_iso = list(range(100, 801, 100))
 
 # Valid Exposure and AWB values
 print("Valid exposure values: [")
@@ -40,7 +40,7 @@ print("Specified AWB values:", list_awb)
 photo_interval = 0.5  # Interval between photos (seconds)
 photo_counter = 0  # Photo counter
 
-total_photos = len(list_ex) * len(list_awb)
+total_photos = len(list_ex) * len(list_awb) * len(list_iso)
 
 # Delete all previous image files
 try:

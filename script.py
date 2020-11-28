@@ -14,7 +14,7 @@ ssh = createSSHClient(input("host> "), int(input("port> ")), input("user> "), in
 scp = SCPClient(ssh.get_transport())
 
 directory = input("directory> ")
-filename = input("filename> ")
-while filename:
+filenames = open("list.txt").readlines()
+for filename in filenames:
+    filename = filename.replace("\n", "")
     scp.get(directory + filename, filename)
-    filename = input("filename> ")
