@@ -1,8 +1,8 @@
 from picamera import PiCamera
 from time import sleep
 
-list_awb = ["antishake", "backlight", "nightpreview", "verylong"]
-list_exposure = ["incandescent"]
+list_exposure = ["antishake", "backlight", "nightpreview", "verylong"]
+list_awb = ["incandescent"]
 list_iso = [800]
 
 camera = PiCamera()
