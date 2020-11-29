@@ -5,7 +5,7 @@ list_awb = ["incandescent"]
 list_iso = [800]
 
 camera = PiCamera()
-camera.resolution = (3280, 2464)
+camera.resolution = (640, 480)
 
 for awb in list_awb:
     for exposure in list_exposure:
