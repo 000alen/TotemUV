@@ -1,5 +1,4 @@
 from picamera import PiCamera
-from time import sleep
 
 list_exposure = ["antishake", "backlight", "nightpreview", "verylong"]
 list_awb = ["incandescent"]
@@ -14,5 +13,6 @@ for awb in list_awb:
             camera.awb_mode = awb
             camera.exposure_mode = exposure
             camera.iso = iso
-            camera.capture("_".join([awb, exposure, str(iso)]) + ".jpg")
-            sleep(5)
+            camera.start_recording("_".join([awb, exposure, str(iso)]) + ".h264")
+            camera.wait_recording(5)
+            camera.stop_recording()
