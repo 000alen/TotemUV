@@ -47,7 +47,7 @@ def face_remove_contour(_image: numpy.ndarray, _face_contour) -> numpy.ndarray:
 
 
 # Procesamiento inicial
-image: numpy.ndarray = cv2.imread("samples/6 (3, 4).jpg")
+image: numpy.ndarray = cv2.imread("Ricardo (Bloqueador) (6).jpg_gray.jpg")
 ratio: Fraction = Fraction(image.shape[0], image.shape[1])
 image: numpy.ndarray = cv2.resize(image, (480, int(480 / ratio.denominator * ratio.numerator)))
 
