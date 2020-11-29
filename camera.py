@@ -6,6 +6,7 @@ list_awb = ["incandescent"]
 list_iso = [800]
 
 camera = PiCamera()
+camera.resolution = (3280, 2464)
 
 for awb in list_awb:
     for exposure in list_exposure:
@@ -14,4 +15,4 @@ for awb in list_awb:
             camera.exposure_mode = exposure
             camera.iso = iso
             camera.capture("_".join([awb, exposure, str(iso)]) + ".jpg")
-            sleep(0.5)
+            sleep(5)
